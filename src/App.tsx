@@ -1,6 +1,6 @@
 import { useFireproof } from 'use-fireproof'
 import type { DocBase } from 'use-fireproof'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // Partial<DocBase> makes all DocBase properties optional
 interface Todo extends Partial<DocBase> {
@@ -12,7 +12,9 @@ interface Todo extends Partial<DocBase> {
 
 function App() {
   const { database: db } = useFireproof("todo-list-db")
-  console.log('fp', db.name)
+  useEffect(() => {
+    console.log('fp', db.name)
+  }, [db])
 
   const [newTodo, setNewTodo] = useState('')
   
