@@ -1,5 +1,6 @@
 import { useFireproof } from 'use-fireproof'
 import type { DocBase } from 'use-fireproof'
+import { useState } from 'react'
 
 // Partial<DocBase> makes all DocBase properties optional
 interface Todo extends Partial<DocBase> {
@@ -10,18 +11,8 @@ interface Todo extends Partial<DocBase> {
 }
 
 function App() {
-  const { useLiveQuery, useDocument, database } = useFireproof("todo-list-db")
-
-  const {
-    doc: newTodo,
-    merge: mergeNewTodo,
-    submit: submitNewTodo
-  } = useDocument<Todo>({
-    todo: "",
-    type: "todo",
-    completed: false,
-    createdAt: Date.now()
-  })
+  const { useLiveQuery, database } = useFireproof("todo-list-db")
+  const [newTodo, setNewTodo] = useState('')
 
   const { docs } = useLiveQuery("type", { 
     key: "todo",
@@ -32,13 +23,19 @@ function App() {
   const todos = docs as Todo[]
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    mergeNewTodo({ todo: e.target.value })
+    setNewTodo(e.target.value)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newTodo.todo.trim() === "") return
-    submitNewTodo()
+    if (newTodo.trim() === "") return
+    database.put({
+      todo: newTodo,
+      type: "todo",
+      completed: false,
+      createdAt: Date.now()
+    })
+    setNewTodo('')
   }
 
   const toggleComplete = (doc: Todo) => {
@@ -60,7 +57,7 @@ function App() {
             id="todo"
             type="text"
             onChange={handleInputChange}
-            value={newTodo.todo}
+            value={newTodo}
             placeholder="What needs to be done?"
           />
           <button 
