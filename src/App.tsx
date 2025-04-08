@@ -1,6 +1,6 @@
 import { useFireproof } from 'use-fireproof'
 import type { DocBase } from 'use-fireproof'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Partial<DocBase> makes all DocBase properties optional
 interface Todo extends Partial<DocBase> {
@@ -11,82 +11,60 @@ interface Todo extends Partial<DocBase> {
 }
 
 function App() {
-  const { database } = useFireproof("todo-list-db")
-  const [newTodo, setNewTodo] = useState('')
-  const [todos, setTodos] = useState<Todo[]>([])
+  const { database: db } = useFireproof("todo-list-db")
+  console.log('fp', db.name)
 
-  // Use effect to fetch todos instead of live query
-  useEffect(() => {
-    const fetchTodos = async () => {
-      try {
-        // Get all documents from the database
-        const result = await database.allDocs()
-        
-        // Extract documents from the response
-        // The response is an array of documents
-        const allDocs = result.rows as unknown as Todo[]
-        
-        // Filter for todo type documents and sort by createdAt (descending)
-        const todoItems = allDocs
-          .filter((doc: Todo) => doc.type === 'todo')
-          .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
-          
-        setTodos(todoItems)
-      } catch (error) {
-        console.error('Error fetching todos:', error)
-      }
+  const [newTodo, setNewTodo] = useState('')
+  
+  // Using static data for the experiment
+  const [todos, setTodos] = useState<Todo[]>([
+    {
+      _id: '1',
+      todo: 'Learn React',
+      type: 'todo',
+      completed: false,
+      createdAt: Date.now() - 10000
+    },
+    {
+      _id: '2',
+      todo: 'Build an app',
+      type: 'todo',
+      completed: true,
+      createdAt: Date.now() - 20000
     }
-    
-    fetchTodos()
-  }, [database])
+  ])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewTodo(e.target.value)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (newTodo.trim() === "") return
     
-    await database.put({
+    // Add new todo using just React state
+    const newTodoItem: Todo = {
+      _id: Date.now().toString(),
       todo: newTodo,
       type: "todo",
       completed: false,
       createdAt: Date.now()
-    })
+    }
     
-    // Fetch updated todos after adding a new one
-    const result = await database.allDocs()
-    const allDocs = result.rows as unknown as Todo[]
-    const todoItems = allDocs
-      .filter((doc: Todo) => doc.type === 'todo')
-      .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
-    setTodos(todoItems)
+    setTodos([newTodoItem, ...todos])
     setNewTodo('')
   }
 
-  const toggleComplete = async (doc: Todo) => {
-    await database.put({ ...doc, completed: !doc.completed })
-    
-    // Fetch updated todos after toggling completion
-    const result = await database.allDocs()
-    const allDocs = result.rows as unknown as Todo[]
-    const todoItems = allDocs
-      .filter((doc: Todo) => doc.type === 'todo')
-      .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
-    setTodos(todoItems)
+  const toggleComplete = (doc: Todo) => {
+    // Update todo completion status using just React state
+    setTodos(todos.map(item => 
+      item._id === doc._id ? { ...item, completed: !item.completed } : item
+    ))
   }
 
-  const deleteTodo = async (id: string) => {
-    await database.del(id)
-    
-    // Fetch updated todos after deleting one
-    const result = await database.allDocs()
-    const allDocs = result.rows as unknown as Todo[]
-    const todoItems = allDocs
-      .filter((doc: Todo) => doc.type === 'todo')
-      .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
-    setTodos(todoItems)
+  const deleteTodo = (id: string) => {
+    // Remove todo using just React state
+    setTodos(todos.filter(item => item._id !== id))
   }
 
   return (
