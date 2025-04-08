@@ -1,6 +1,6 @@
 import { useFireproof } from 'use-fireproof'
 import type { DocBase } from 'use-fireproof'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // Partial<DocBase> makes all DocBase properties optional
 interface Todo extends Partial<DocBase> {
@@ -11,39 +11,82 @@ interface Todo extends Partial<DocBase> {
 }
 
 function App() {
-  const { useLiveQuery, database } = useFireproof("todo-list-db")
+  const { database } = useFireproof("todo-list-db")
   const [newTodo, setNewTodo] = useState('')
+  const [todos, setTodos] = useState<Todo[]>([])
 
-  const { docs } = useLiveQuery("type", { 
-    key: "todo",
-    descending: true 
-  })
-  
-  // Type assertion to treat the docs as Todo items
-  const todos = docs as Todo[]
+  // Use effect to fetch todos instead of live query
+  useEffect(() => {
+    const fetchTodos = async () => {
+      try {
+        // Get all documents from the database
+        const result = await database.allDocs()
+        
+        // Extract documents from the response
+        // The response is an array of documents
+        const allDocs = result.rows as unknown as Todo[]
+        
+        // Filter for todo type documents and sort by createdAt (descending)
+        const todoItems = allDocs
+          .filter((doc: Todo) => doc.type === 'todo')
+          .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
+          
+        setTodos(todoItems)
+      } catch (error) {
+        console.error('Error fetching todos:', error)
+      }
+    }
+    
+    fetchTodos()
+  }, [database])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewTodo(e.target.value)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newTodo.trim() === "") return
-    database.put({
+    
+    await database.put({
       todo: newTodo,
       type: "todo",
       completed: false,
       createdAt: Date.now()
     })
+    
+    // Fetch updated todos after adding a new one
+    const result = await database.allDocs()
+    const allDocs = result.rows as unknown as Todo[]
+    const todoItems = allDocs
+      .filter((doc: Todo) => doc.type === 'todo')
+      .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
+    setTodos(todoItems)
     setNewTodo('')
   }
 
-  const toggleComplete = (doc: Todo) => {
-    database.put({ ...doc, completed: !doc.completed })
+  const toggleComplete = async (doc: Todo) => {
+    await database.put({ ...doc, completed: !doc.completed })
+    
+    // Fetch updated todos after toggling completion
+    const result = await database.allDocs()
+    const allDocs = result.rows as unknown as Todo[]
+    const todoItems = allDocs
+      .filter((doc: Todo) => doc.type === 'todo')
+      .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
+    setTodos(todoItems)
   }
 
-  const deleteTodo = (id: string) => {
-    database.del(id)
+  const deleteTodo = async (id: string) => {
+    await database.del(id)
+    
+    // Fetch updated todos after deleting one
+    const result = await database.allDocs()
+    const allDocs = result.rows as unknown as Todo[]
+    const todoItems = allDocs
+      .filter((doc: Todo) => doc.type === 'todo')
+      .sort((a: Todo, b: Todo) => (b.createdAt || 0) - (a.createdAt || 0))
+    setTodos(todoItems)
   }
 
   return (

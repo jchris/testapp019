@@ -34,6 +34,8 @@ The browser completely hangs as soon as a single character is typed in any input
 - The main branch using v0.19.124 works perfectly with the same codebase
 - No console errors are visible before the hang occurs
 - The hang happens immediately on the first keystroke in any input field
+- We've tested multiple dev-preview versions (0.20.14, 0.20.52, 0.20.60, and others) and all exhibit the same hanging behavior
+- This issue has been present in all 0.20.x versions we've tested, though we're unsure how we missed it during earlier testing phases
 
 ## Minimal Reproduction Code
 ```tsx
@@ -73,3 +75,6 @@ Downgrade to use-fireproof v0.19.124 until the issue is resolved.
 
 ## Impact
 This issue completely blocks development and usage of applications that depend on use-fireproof v0.20.0, as basic form input functionality is broken.
+
+## Update (2025-04-08)
+Even after completely removing useLiveQuery and useDocument in favor of direct database.put API calls and database.allDocs with useEffect, the browser hang issue persists. This further suggests that the problem is fundamental to the core library functionality in v0.20.0 and not limited to specific hooks.
