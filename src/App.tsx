@@ -36,11 +36,12 @@ function App() {
         console.error('Error fetching todos:', error)
       }
     }
-    
+    console.log('fp useEffect', database.name)
     fetchTodos()
   }, [database])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('fp handleInputChange', database.name)
     setNewTodo(e.target.value)
   }
 
