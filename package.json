@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "use-fireproof": "0.20.1-dev-preview-04"
+    "use-fireproof": "0.20.1-dev-preview-09"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
