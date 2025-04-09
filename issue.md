@@ -7,7 +7,7 @@ When upgrading from use-fireproof v0.19.124 to v0.20.0, the application experien
 - React 19.0.0
 - TypeScript
 - Vite 6.2.5
-- Browser: Chrome/Firefox/Safari (all affected)
+- Browser: Chrome
 - OS: macOS
 
 ## Steps to Reproduce
@@ -78,3 +78,22 @@ This issue completely blocks development and usage of applications that depend o
 
 ## Update (2025-04-08)
 Even after completely removing useLiveQuery and useDocument in favor of direct database.put API calls and database.allDocs with useEffect, the browser hang issue persists. This further suggests that the problem is fundamental to the core library functionality in v0.20.0 and not limited to specific hooks.
+
+Curiously, the `no-fp` branch (which only instantiates the database but doesn't perform any operations on it) doesn't exhibit the hanging problem. This suggests the issue might be related to memoization after database operations - possibly the database object reference is changing after operations, causing an infinite re-render loop.
+
+### Analysis of Potential Causes
+
+Based on the logs and behavior observed, the issue appears to be an infinite loop or recursion problem in the useFireproof hook implementation in v0.20.0:
+
+1. **Dependency Tracking Issue**: The `useEffect` is running repeatedly (as shown by the repeated logs), suggesting that its dependency array (`[database]`) is changing on every render. This indicates that the `database` object reference might be changing on every render, causing the effect to run again.
+
+2. **Memoization Problem**: If the `database` object returned by `useFireproof` isn't properly memoized, it would create a new reference on each render, triggering the effect again, which causes another render, and so on.
+
+3. **Potential Internal Subscription Loop**: The library might have an internal subscription mechanism that's triggering re-renders when database operations occur, but something in v0.20.0 could be causing these subscriptions to fire recursively.
+
+4. **Event Handler Execution**: The fact that input handlers aren't being called suggests that the browser is so busy with the infinite loop that it can't process user events.
+
+5. **React Strict Mode**: If using React's Strict Mode, it could be double-invoking effects to help find bugs, which might be exacerbating an underlying issue in the hook.
+
+The most likely scenario is that the `useFireproof` hook is creating a new database instance after operations instead of reusing the existing one, or there's a circular dependency where database changes trigger re-renders, which create new database instances, which trigger more changes.
+
